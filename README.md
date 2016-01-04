@@ -1,2 +1,3 @@
-# chef-ssh-known-hosts
+# ssh-known-hosts
 LWRP for manipulating known hosts entries
+=======
