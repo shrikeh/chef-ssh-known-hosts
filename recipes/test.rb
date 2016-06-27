@@ -5,6 +5,8 @@
 #
 # Copyright (c) 2015 The Authors, All Rights Reserved.
 
-ssh_known_hosts_entry 'github.com' do
+
+
+ssh_user_known_hosts_entry 'github.com' do
   path '/tmp/foo'
 end

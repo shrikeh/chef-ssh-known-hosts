@@ -2,6 +2,21 @@
 
 module SshKnownHosts
   class Host
+    @@regexIpAddress = Regexp.new('\d+\.\d+\.\d+\.\d+')
+
+    def self.fromString(str)
+      ips = []
+      domains = []
+      str.split(',').each do |part|
+        if @@regexIpAddress.match(part)
+          ips.push(part)
+        else
+          domains.push(part)
+        end
+      end
+      self.new(domains, ips)
+    end
+
     def initialize(domains, ips)
       @domains = domains.uniq.sort
       @ips = ips.uniq.sort

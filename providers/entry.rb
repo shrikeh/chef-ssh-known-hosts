@@ -16,7 +16,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require_relative '../libraries/ssh_known_hosts'
 
+module CreateUserKnownHosts
+  include SshKnownHosts
+  extend self
+
+  def create_host(res)
+    return Host.fromString(res.host)
+  end
+
+  def create_user_known_host_entry(res)
+    key = create_user_known_host_key(res)
+    host = create_host(res)
+    HostEntry.new(host, key)
+  end
+
+  def create_user_known_host_key(res)
+    if res.key
+      if res.key_type == 'rsa' || res.key_type == 'dsa'
+        key_type = "ssh-#{res.key_type}"
+      else
+        key_type = res.key_type
+      end
+    else
+      #key = `ssh-keyscan -t #{node['ssh_known_hosts']['key_type']} -p #{new_resource.port} #{new_resource.host}`
+    end
+      HostKey.new(res.key, key_type)
+    end
+end
 
 use_inline_resources if defined?(use_inline_resources)
 
@@ -25,18 +53,10 @@ def whyrun_supported?
 end
 
 action :create do
-  if new_resource.key
-    if new_resource.key_type == 'rsa' || new_resource.key_type == 'dsa'
-      key_type = "ssh-#{new_resource.key_type}"
-    else
-      key_type = new_resource.key_type
-    end
-    key = "#{new_resource.host} #{key_type} #{new_resource.key}"
-  else
-    key = `ssh-keyscan -t#{node['ssh_known_hosts']['key_type']} -p #{new_resource.port} #{new_resource.host}`
-  end
 
-  comment = key.split("\n").first || ''
+  key = CreateUserKnownHosts.create_user_known_host_entry(new_resource)
+
+  comment = key.to_s.split("\n").first || ''
 
   if key_exists?(key, comment)
     Chef::Log.debug "Known hosts key for #{new_resource.name} already exists - skipping"
@@ -49,6 +69,10 @@ action :create do
       content "#{new_keys.join($INPUT_RECORD_SEPARATOR)}#{$INPUT_RECORD_SEPARATOR}"
     end
   end
+end
+
+def create_host_entry
+
 end
 
 private
