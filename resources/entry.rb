@@ -24,7 +24,7 @@ default_action :create
 
 attribute :host, kind_of: String, name_attribute: true
 attribute :key, kind_of: String
-attribute :key_type, kind_of: String, default: 'rsa'
+attribute :type, kind_of: String, default: 'rsa'
 attribute :port, kind_of: Fixnum, default: 22
 attribute :path, kind_of: String, default: '/etc/ssh/known_hosts'
 

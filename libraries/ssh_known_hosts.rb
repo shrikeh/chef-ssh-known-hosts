@@ -32,11 +32,23 @@ module SshKnownHosts
 
     def to_s
       host = self.domains + self.ips
-      host.join(', ')
+      host.join(',')
     end
   end
 
+
+# Host key class for a value object
+
   class HostKey
+    def self.fromParts(key, type)
+      if type == 'rsa' || type == 'dsa'
+        key_type = "ssh-#{type}"
+      else
+        key_type = type
+      end
+      self.new(key, type)
+    end
+
     def initialize(key, type)
       @type = type
       @key = key
@@ -57,6 +69,8 @@ module SshKnownHosts
 
   class HostEntry
     def initialize(host, key)
+      raise 'Argument error not of type Host' unless host.kind_of?(Host)
+      raise 'Argument error not of type HostKey' unless key.kind_of?(HostKey)
       @host = host
       @key = key
     end
@@ -66,7 +80,7 @@ module SshKnownHosts
     end
 
     def merge(host_entry)
-      raise "Argument error not of type HostEntry" unless host_entry.kind_of?(HostEntry)
+      raise 'Argument error not of type HostEntry' unless host_entry.kind_of?(HostEntry)
       domains = self.host.domains + host_entry.host.domains
       ips = self.host.ips + host_entry.host.ips
       host = Host.new(domains, ips)

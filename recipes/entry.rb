@@ -7,6 +7,6 @@
 
 
 
-ssh_user_known_hosts_entry 'github.com' do
-  path '/tmp/foo'
+ssh_user_known_hosts_entries node['ssh_known_hosts']['file'] do
+  entries node['ssh_known_hosts']['entries']
 end

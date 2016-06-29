@@ -38,4 +38,5 @@ module ParseSshKnownHosts
     HostEntriesCollection.new(host_entries)
   end
 end
+
 include ParseSshKnownHosts

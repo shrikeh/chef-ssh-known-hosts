@@ -18,32 +18,15 @@
 # limitations under the License.
 require_relative '../libraries/ssh_known_hosts'
 
-module CreateUserKnownHosts
+module CreateUserKnownHostEntry
   include SshKnownHosts
   extend self
 
-  def create_host(res)
-    return Host.fromString(res.host)
-  end
-
   def create_user_known_host_entry(res)
-    key = create_user_known_host_key(res)
-    host = create_host(res)
+    key = HostKey.fromParts(res.key, res.type)
+    host = Host.fromString(res.host)
     HostEntry.new(host, key)
   end
-
-  def create_user_known_host_key(res)
-    if res.key
-      if res.key_type == 'rsa' || res.key_type == 'dsa'
-        key_type = "ssh-#{res.key_type}"
-      else
-        key_type = res.key_type
-      end
-    else
-      #key = `ssh-keyscan -t #{node['ssh_known_hosts']['key_type']} -p #{new_resource.port} #{new_resource.host}`
-    end
-      HostKey.new(res.key, key_type)
-    end
 end
 
 use_inline_resources if defined?(use_inline_resources)
@@ -54,19 +37,19 @@ end
 
 action :create do
 
-  key = CreateUserKnownHosts.create_user_known_host_entry(new_resource)
+  key = CreateUserKnownHostEntry.create_user_known_host_entry(new_resource).to_s
 
   comment = key.to_s.split("\n").first || ''
 
   if key_exists?(key, comment)
-    Chef::Log.debug "Known hosts key for #{new_resource.name} already exists - skipping"
+    Chef::Log.debug printf('Known hosts key for %s already exists - skipping', new_resource.name)
   else
     new_keys = (keys + [key]).uniq.sort
     file "ssh_known_hosts-#{new_resource.name}" do
       path    new_resource.path
       action  :create
       backup  false
-      content "#{new_keys.join($INPUT_RECORD_SEPARATOR)}#{$INPUT_RECORD_SEPARATOR}"
+      content "#{new_keys.join("\n")}"
     end
   end
 end
