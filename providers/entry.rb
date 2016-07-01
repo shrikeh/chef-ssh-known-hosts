@@ -20,7 +20,8 @@ require_relative '../libraries/ssh_known_hosts'
 
 module CreateUserKnownHostEntry
   include SshKnownHosts
-  extend self
+
+  module_function
 
   def create_user_known_host_entry(res)
     key = HostKey.fromParts(res.key, res.type)
@@ -36,26 +37,25 @@ def whyrun_supported?
 end
 
 action :create do
-
   key = CreateUserKnownHostEntry.create_user_known_host_entry(new_resource).to_s
 
   comment = key.to_s.split("\n").first || ''
 
   if key_exists?(key, comment)
-    Chef::Log.debug printf('Known hosts key for %s already exists - skipping', new_resource.name)
+    str = 'Known hosts key for %s already exists - skipping'
+    Chef::Log.debug printf(str, new_resource.name)
   else
     new_keys = (keys + [key]).uniq.sort
     file "ssh_known_hosts-#{new_resource.name}" do
-      path    new_resource.path
-      action  :create
-      backup  false
+      path new_resource.path
+      action :create
+      backup false
       content "#{new_keys.join("\n")}"
     end
   end
 end
 
 def create_host_entry
-
 end
 
 private

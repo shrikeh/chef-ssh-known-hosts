@@ -38,16 +38,22 @@ require_relative '../libraries/ssh_known_hosts'
 
 module CreateUserKnownHostEntries
   include SshKnownHosts
-  extend self
 
-  @regexEntry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]+)')
+  module_function
+
+  @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]+)')
 
   def create_user_known_host_entries(entries)
-    raise "Argument error not of type Array, instead #{entries.class}" unless entries.kind_of?(Array)
+    fail_msg = 'Argument error not of type Array, instead got %s'
+    fail printf(fail_msg, entries.class) unless entries.is_a?(Array)
     host_entries = []
     entries.each do |entry|
-      host_entry = create_known_hosts_entry(entry['host'], entry['type'], entry['key'])
-      raise host_entry.inspect unless host_entry.kind_of?(HostEntry)
+      host_entry = create_known_hosts_entry(
+        entry['host'],
+        entry['type'],
+        entry['key']
+      )
+      fail host_entry.inspect unless host_entry.is_a?(HostEntry)
       host_entries.push(host_entry)
     end
     HostEntriesCollection.new(host_entries)
@@ -58,7 +64,7 @@ module CreateUserKnownHostEntries
   end
 
   def parse_known_host_string(str)
-      str.scan(@regexEntry)
+    str.scan(@regex_entry)
   end
 
   def from_string(str)
@@ -81,26 +87,33 @@ def whyrun_supported?
 end
 
 action :create do
-
   if new_resource.entries
-     raise "Argument error not of type Array, instead #{new_resource.entries.inspect}" unless new_resource.entries.kind_of?(Array)
-     entries = CreateUserKnownHostEntries.create_user_known_host_entries(new_resource.entries)
+    fail_msg = 'Argument error not of type Array, instead got %s'
+    fail printf(fail_msg, new_resource.entries.inspect) unless
+      new_resource
+      .entries
+      .is_a?(Array)
+    entries =
+      CreateUserKnownHostEntries
+      .create_user_known_host_entries(new_resource.entries)
   end
 
   if new_resource.append
-    if ::File.exists?(new_resource.path)
-      existing_keys = CreateUserKnownHostEntries.from_string(IO.read(new_resource.path))
+    if ::File.exist?(new_resource.path)
+      existing_keys =
+        CreateUserKnownHostEntries
+        .from_string(IO.read(new_resource.path))
       entries = existing_keys.merge(entries)
     end
   end
 
   file "ssh_known_hosts-#{new_resource.name}" do
-    path    new_resource.path
-    action  :create
-    backup  false
-    owner   new_resource.owner if new_resource.owner
-    group   new_resource.group if new_resource.group
-    mode    new_resource.mode
+    path new_resource.path
+    action :create
+    backup false
+    owner new_resource.owner if new_resource.owner
+    group new_resource.group if new_resource.group
+    mode new_resource.mode
     content "#{entries}"
   end
 end

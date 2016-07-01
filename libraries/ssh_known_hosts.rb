@@ -14,7 +14,7 @@ module SshKnownHosts
           domains.push(part)
         end
       end
-      self.new(domains, ips)
+      new(domains, ips)
     end
 
     def initialize(domains, ips)
@@ -22,31 +22,24 @@ module SshKnownHosts
       @ips = ips.uniq.sort
     end
 
-    def domains
-      @domains
-    end
+    attr_reader :domains
 
-    def ips
-      @ips
-    end
+    attr_reader :ips
 
     def to_s
-      host = self.domains + self.ips
+      host = domains + ips
       host.join(',')
     end
   end
 
-
-# Host key class for a value object
+  # Host key class for a value object
 
   class HostKey
     def self.fromParts(key, type)
       if type == 'rsa' || type == 'dsa'
-        key_type = "ssh-#{type}"
-      else
-        key_type = type
+        type = "ssh-#{type}"
       end
-      self.new(key, type)
+      new(key, type)
     end
 
     def initialize(key, type)
@@ -54,49 +47,42 @@ module SshKnownHosts
       @key = key
     end
 
-    def type
-      @type
-    end
+    attr_reader :type
 
-    def key
-      @key
-    end
+    attr_reader :key
 
     def to_s
-      "#{self.type} #{self.key}"
+      "#{type} #{key}"
     end
   end
 
   class HostEntry
     def initialize(host, key)
-      raise 'Argument error not of type Host' unless host.kind_of?(Host)
-      raise 'Argument error not of type HostKey' unless key.kind_of?(HostKey)
+      fail 'Argument error not of type Host' unless host.is_a?(Host)
+      fail 'Argument error not of type HostKey' unless key.is_a?(HostKey)
       @host = host
       @key = key
     end
 
     def compare(host_entry)
-      host_entry.key.to_s == self.key.to_s
+      host_entry.key.to_s == key.to_s
     end
 
     def merge(host_entry)
-      raise 'Argument error not of type HostEntry' unless host_entry.kind_of?(HostEntry)
-      domains = self.host.domains + host_entry.host.domains
-      ips = self.host.ips + host_entry.host.ips
+      fail_msg = 'Argument error not of type HostEntry'
+      fail fail_msg unless host_entry.is_a?(HostEntry)
+      domains = host.domains + host_entry.host.domains
+      ips = host.ips + host_entry.host.ips
       host = Host.new(domains, ips)
-      HostEntry.new(host, self.key)
+      HostEntry.new(host, key)
     end
 
-    def host
-      @host
-    end
+    attr_reader :host
 
-    def key
-      @key
-    end
+    attr_reader :key
 
     def to_s
-      "#{self.host} #{self.key}"
+      "#{host} #{key}"
     end
   end
 
@@ -106,7 +92,8 @@ module SshKnownHosts
     end
 
     def merge(entries)
-      raise 'Argument error not of type HostEntriesCollection' unless entries.kind_of?(HostEntriesCollection)
+      fail_msg = 'Argument error not of type HostEntriesCollection'
+      fail fail_msg unless entries.is_a?(HostEntriesCollection)
 
       host_entries = HostEntriesCollection.resolve(entries.entries.values, self.entries)
       HostEntriesCollection.new(host_entries.values)
@@ -125,10 +112,9 @@ module SshKnownHosts
     end
 
     def self.resolve(entries, existing = {})
-
       entries.each do |host_entry|
-        raise "Host entry: #{host_entry.inspect}" unless host_entry.kind_of?(HostEntry)
-        if existing.has_key?(host_entry.key.key)
+        fail "Host entry: #{host_entry.inspect}" unless host_entry.is_a?(HostEntry)
+        if existing.key?(host_entry.key.key)
           host_entry = existing[host_entry.key.key].merge(host_entry)
         end
         existing[host_entry.key.key] = host_entry

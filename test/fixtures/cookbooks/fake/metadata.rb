@@ -1,4 +1,4 @@
-#/usr/bin/env ruby
+# /usr/bin/env ruby
 name 'fake'
 version '0.0.1'
 
