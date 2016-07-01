@@ -102,16 +102,14 @@ module SshKnownHosts
 
   class HostEntriesCollection
     def initialize(entries)
-      @host_entries = {}
-      entries.uniq.each do |host_entry|
-        @host_entries.each do |key, entry|
-          if host_entry.compare(entry)
-            host_entry = entry.merge(host_entry)
-            break
-          end
-        end
-        @host_entries[host_entry.key.to_s] = host_entry
-      end
+      @host_entries = HostEntriesCollection.resolve(entries)
+    end
+
+    def merge(entries)
+      raise 'Argument error not of type HostEntriesCollection' unless entries.kind_of?(HostEntriesCollection)
+
+      host_entries = HostEntriesCollection.resolve(entries.entries.values, self.entries)
+      HostEntriesCollection.new(host_entries.values)
     end
 
     def to_s
@@ -121,5 +119,29 @@ module SshKnownHosts
       end
       entries.sort.join("\n")
     end
+
+    def entries
+      @host_entries
+    end
+
+    def self.resolve(entries, existing = {})
+
+      entries.each do |host_entry|
+        raise "Host entry: #{host_entry.inspect}" unless host_entry.kind_of?(HostEntry)
+        if existing.has_key?(host_entry.key.key)
+          host_entry = existing[host_entry.key.key].merge(host_entry)
+        end
+        existing[host_entry.key.key] = host_entry
+      end
+      existing.rehash
+      existing
+    end
+
+    # def compare(first, second)
+    #   if first.compare(second)
+    #     return first.merge(second)
+    #   end
+    #   false
+    # end
   end
 end

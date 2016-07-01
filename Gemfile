@@ -10,14 +10,13 @@ group :chef do
   gem 'nokogiri', '< 1.6.6.3'
 end
 
-group :chef_development do
-  # Automatically run Tests upon file change
-  gem 'guard', '~> 2.13.0'
-  gem 'guard-rspec', '~> 4.6.4'
+source 'https://rubygems.org'
 
+group :chef_development do
   gem 'chefspec', '~> 4.3.0'
   gem 'test-kitchen', '~> 1.4.2'
   gem 'kitchen-vagrant', '~> 0.18.0'
   gem 'kitchen-docker', '~> 2.3.0'
   gem 'foodcritic', '~> 4.0.0'
+  gem 'rubocop', '~> 0.34.0'
 end
