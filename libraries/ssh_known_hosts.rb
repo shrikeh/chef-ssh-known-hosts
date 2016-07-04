@@ -36,9 +36,7 @@ module SshKnownHosts
 
   class HostKey
     def self.fromParts(key, type)
-      if type == 'rsa' || type == 'dsa'
-        type = "ssh-#{type}"
-      end
+      type = "ssh-#{type}" if type == 'rsa' || type == 'dsa'
       new(key, type)
     end
 

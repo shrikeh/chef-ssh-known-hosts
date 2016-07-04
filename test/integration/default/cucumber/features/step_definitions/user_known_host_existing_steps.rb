@@ -21,7 +21,7 @@ end
 
 When(/^Chef runs and the node has new known host entries$/) do
   @chef_run = `cd /tmp/kitchen/ && sudo chef-solo -j dna.json -c solo.rb`
-  @success = $?.to_i
+  @success = $CHILD_STATUS.to_i
 end
 
 Then(/^new entries are appended and the existing entries are preserved$/) do
