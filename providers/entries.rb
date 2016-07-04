@@ -16,7 +16,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-require_relative '../libraries/ssh_known_hosts'
+require_relative '../libraries/ssh_user_known_hosts'
 
 # Override Load Current Resource
 def load_current_resource
@@ -40,11 +40,11 @@ end
 
 # Helper module for Chef
 module CreateUserKnownHostEntries
-  include SshKnownHosts
+  include SshUserKnownHosts
 
   module_function
 
-  @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]+)')
+  @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]*)')
 
   def create_user_known_host_entries(entries)
     fail_msg = 'Argument error not of type Array, instead got %s'

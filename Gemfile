@@ -11,8 +11,6 @@ group :chef do
   gem 'nokogiri', '< 1.6.6.3'
 end
 
-source 'https://rubygems.org'
-
 group :chef_development do
   gem 'chefspec', '~> 4.3.0'
   gem 'test-kitchen', '~> 1.4.2'

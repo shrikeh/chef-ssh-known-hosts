@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-module SshKnownHosts
+module SshUserKnownHosts
   # Describes a host (IP, domain) for a host entry
   class Host
     @regex_ip_address = Regexp.new('\d+\.\d+\.\d+\.\d+')
