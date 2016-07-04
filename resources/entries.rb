@@ -20,7 +20,8 @@
 resource_name 'ssh_user_known_hosts_entries'
 
 actions :create
-default_action :create
+# Our default action, can be anything.
+default_action :create if defined?(default_action)
 
 property :entries, kind_of: Array
 property :path, kind_of: String, name_property:  true
@@ -32,88 +33,4 @@ property :mode, kind_of: [String, Integer], default: '0644'
 def initialize(*args)
   super
   @action = :create
-end
-
-require_relative '../libraries/ssh_known_hosts'
-
-module CreateUserKnownHostEntries
-  include SshKnownHosts
-
-  module_function
-
-  @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]+)')
-
-  def create_user_known_host_entries(entries)
-    fail_msg = 'Argument error not of type Array, instead got %s'
-    fail printf(fail_msg, entries.class) unless entries.is_a?(Array)
-    host_entries = []
-    entries.each do |entry|
-      host_entry = create_known_hosts_entry(
-        entry['host'],
-        entry['type'],
-        entry['key']
-      )
-      fail host_entry.inspect unless host_entry.is_a?(HostEntry)
-      host_entries.push(host_entry)
-    end
-    HostEntriesCollection.new(host_entries)
-  end
-
-  def create_known_hosts_entry(host, type, key)
-    HostEntry.new(Host.fromString(host), HostKey.fromParts(key, type))
-  end
-
-  def parse_known_host_string(str)
-    str.scan(@regex_entry)
-  end
-
-  def from_string(str)
-    host_entries = []
-    # iterate through the file line by line
-    str.lines.each do |line|
-      parse_known_host_string(line).each do |host, type, key|
-        entry = create_known_hosts_entry(host, type, key)
-        host_entries.push(entry)
-      end
-    end
-    HostEntriesCollection.new(host_entries)
-  end
-end
-
-use_inline_resources if defined?(use_inline_resources)
-
-def whyrun_supported?
-  true
-end
-
-action :create do
-  if new_resource.entries
-    fail_msg = 'Argument error not of type Array, instead got %s'
-    fail printf(fail_msg, new_resource.entries.inspect) unless
-      new_resource
-      .entries
-      .is_a?(Array)
-    entries =
-      CreateUserKnownHostEntries
-      .create_user_known_host_entries(new_resource.entries)
-  end
-
-  if new_resource.append
-    if ::File.exist?(new_resource.path)
-      existing_keys =
-        CreateUserKnownHostEntries
-        .from_string(IO.read(new_resource.path))
-      entries = existing_keys.merge(entries)
-    end
-  end
-
-  file "ssh_known_hosts-#{new_resource.name}" do
-    path new_resource.path
-    action :create
-    backup false
-    owner new_resource.owner if new_resource.owner
-    group new_resource.group if new_resource.group
-    mode new_resource.mode
-    content "#{entries}"
-  end
 end

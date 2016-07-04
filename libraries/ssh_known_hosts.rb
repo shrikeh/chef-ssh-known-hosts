@@ -1,14 +1,15 @@
 #!/usr/bin/env ruby
 
 module SshKnownHosts
+  # Describes a host (IP, domain) for a host entry
   class Host
-    @@regexIpAddress = Regexp.new('\d+\.\d+\.\d+\.\d+')
+    @regex_ip_address = Regexp.new('\d+\.\d+\.\d+\.\d+')
 
-    def self.fromString(str)
+    def self.from_string(str)
       ips = []
       domains = []
       str.split(',').each do |part|
-        if @@regexIpAddress.match(part)
+        if @regex_ip_address.match(part)
           ips.push(part)
         else
           domains.push(part)
@@ -32,10 +33,9 @@ module SshKnownHosts
     end
   end
 
-  # Host key class for a value object
-
+  # Host key class for a value object describing a known_host key (type key)
   class HostKey
-    def self.fromParts(key, type)
+    def self.from_parts(key, type)
       type = "ssh-#{type}" if type == 'rsa' || type == 'dsa'
       new(key, type)
     end
@@ -54,6 +54,7 @@ module SshKnownHosts
     end
   end
 
+  # Describes a host entry in known_hosts file (host key-type key)
   class HostEntry
     def initialize(host, key)
       fail 'Argument error not of type Host' unless host.is_a?(Host)
@@ -69,10 +70,8 @@ module SshKnownHosts
     def merge(host_entry)
       fail_msg = 'Argument error not of type HostEntry'
       fail fail_msg unless host_entry.is_a?(HostEntry)
-      domains = host.domains + host_entry.host.domains
-      ips = host.ips + host_entry.host.ips
-      host = Host.new(domains, ips)
-      HostEntry.new(host, key)
+
+      HostEntry.new(create_host(host_entry), key)
     end
 
     attr_reader :host
@@ -82,8 +81,17 @@ module SshKnownHosts
     def to_s
       "#{host} #{key}"
     end
+
+    private
+
+    def create_host(host_entry)
+      domains = host.domains + host_entry.host.domains
+      ips = host.ips + host_entry.host.ips
+      Host.new(domains, ips)
+    end
   end
 
+  # Immutable collection of Host Entry objects for writing to file
   class HostEntriesCollection
     def initialize(entries)
       @host_entries = HostEntriesCollection.resolve(entries)
@@ -93,7 +101,10 @@ module SshKnownHosts
       fail_msg = 'Argument error not of type HostEntriesCollection'
       fail fail_msg unless entries.is_a?(HostEntriesCollection)
 
-      host_entries = HostEntriesCollection.resolve(entries.entries.values, self.entries)
+      host_entries = HostEntriesCollection.resolve(
+        entries.entries.values,
+        self.entries
+      )
       HostEntriesCollection.new(host_entries.values)
     end
 
@@ -110,15 +121,20 @@ module SshKnownHosts
     end
 
     def self.resolve(entries, existing = {})
-      entries.each do |host_entry|
-        fail "Host entry: #{host_entry.inspect}" unless host_entry.is_a?(HostEntry)
-        if existing.key?(host_entry.key.key)
-          host_entry = existing[host_entry.key.key].merge(host_entry)
-        end
-        existing[host_entry.key.key] = host_entry
+      fail_msg = 'Host entry: %s'
+      entries.each do |entry|
+        fail printf(fail_msg, entry.inspect) unless entry.is_a?(HostEntry)
+        existing[entry.key.key] = merge_host_entry(existing, entry)
       end
       existing.rehash
       existing
+    end
+
+    def self.merge_host_entry(existing, host_entry)
+      if existing.key?(host_entry.key.key)
+        host_entry = existing[host_entry.key.key].merge(host_entry)
+      end
+      host_entry
     end
 
     # def compare(first, second)

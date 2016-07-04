@@ -6,7 +6,8 @@ group :chef do
   gem 'knife-solo'
   gem 'knife-solo_data_bag'
 
-  # Lock nokogiri to the version shipped with chefdk, to avoid installing it again
+  # Lock nokogiri to the version shipped with chefdk,
+  # to avoid installing it again
   gem 'nokogiri', '< 1.6.6.3'
 end
 
