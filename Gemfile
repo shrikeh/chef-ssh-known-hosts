@@ -1,6 +1,5 @@
 source 'https://rubygems.org'
 
-<<<<<<< HEAD
 group :chef do
   # Chef tools
   gem 'berkshelf', '~> 3.3.0'
