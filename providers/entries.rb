@@ -48,11 +48,19 @@ module CreateUserKnownHostEntries
 
   def create_user_known_host_entries(entries)
     fail_msg = 'Argument error not of type Array, instead got %s'
-    fail printf(fail_msg, entries.class) unless entries.is_a?(Array)
+    fail(
+      ArgumentError,
+      printf(fail_msg, entries.class),
+      caller
+    ) unless entries.is_a?(Array)
     host_entries = []
     entries.each do |entry|
       host_entry = from_entry(entry)
-      fail host_entry.inspect unless host_entry.is_a?(HostEntry)
+      fail(
+        ArgumentError,
+        "#{host_entry.inspect}",
+        caller
+      ) unless host_entry.is_a?(HostEntry)
       host_entries.push(host_entry)
     end
     HostEntriesCollection.new(host_entries)
@@ -67,6 +75,11 @@ module CreateUserKnownHostEntries
   end
 
   def create_known_hosts_entry(host, type, key)
+    fail(
+      ArgumentError,
+      'Type was empty',
+      caller
+    ) unless type
     HostEntry.new(Host.from_string(host), HostKey.from_parts(key, type))
   end
 
@@ -96,7 +109,7 @@ end
 action :create do
   if new_resource.entries
     fail_msg = 'Argument error not of type Array, instead got %s'
-    fail printf(fail_msg, new_resource.entries.inspect) unless
+    fail ArgumentError, printf(fail_msg, new_resource.entries.inspect) unless
       new_resource
       .entries
       .is_a?(Array)

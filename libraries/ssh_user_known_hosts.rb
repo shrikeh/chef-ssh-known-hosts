@@ -36,7 +36,7 @@ module SshUserKnownHosts
   # Host key class for a value object describing a known_host key (type key)
   class HostKey
     def self.from_parts(key, type)
-      type = "ssh-#{type}" if type == 'rsa' || type == 'dsa'
+      type = "ssh-#{type}" if type == 'rsa'
       new(key, type)
     end
 
@@ -57,8 +57,17 @@ module SshUserKnownHosts
   # Describes a host entry in known_hosts file (host key-type key)
   class HostEntry
     def initialize(host, key)
-      fail 'Argument error not of type Host' unless host.is_a?(Host)
-      fail 'Argument error not of type HostKey' unless key.is_a?(HostKey)
+      fail(
+        ArgumentError,
+        'Argument error not of type Host',
+        caller
+      ) unless host.is_a?(Host)
+      
+      fail(
+        ArgumentError,
+        'Argument error not of type HostKey',
+        caller
+      ) unless key.is_a?(HostKey)
       @host = host
       @key = key
     end
@@ -68,8 +77,11 @@ module SshUserKnownHosts
     end
 
     def merge(host_entry)
-      fail_msg = 'Argument error not of type HostEntry'
-      fail fail_msg unless host_entry.is_a?(HostEntry)
+      fail(
+        ArgumentError,
+        'Argument error not of type HostEntry',
+        caller
+      ) unless host_entry.is_a?(HostEntry)
 
       HostEntry.new(create_host(host_entry), key)
     end
@@ -99,7 +111,11 @@ module SshUserKnownHosts
 
     def merge(entries)
       fail_msg = 'Argument error not of type HostEntriesCollection'
-      fail fail_msg unless entries.is_a?(HostEntriesCollection)
+      fail(
+        ArgumentError,
+        fail_msg,
+        caller
+      ) unless entries.is_a?(HostEntriesCollection)
 
       host_entries = HostEntriesCollection.resolve(
         entries.entries.values,
@@ -123,7 +139,11 @@ module SshUserKnownHosts
     def self.resolve(entries, existing = {})
       fail_msg = 'Host entry: %s'
       entries.each do |entry|
-        fail printf(fail_msg, entry.inspect) unless entry.is_a?(HostEntry)
+        fail(
+          ArgumentError,
+          printf(fail_msg, entry.inspect),
+          caller
+        ) unless entry.is_a?(HostEntry)
         existing[entry.key.key] = merge_host_entry(existing, entry)
       end
       existing.rehash
