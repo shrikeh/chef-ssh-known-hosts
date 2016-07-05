@@ -24,7 +24,7 @@ actions :create
 default_action :create if defined?(default_action)
 
 property :entries, kind_of: Array
-property :path, kind_of: String, name_property:  true
+property :path, kind_of: String, name_property: true
 property :append, kind_of: [TrueClass, FalseClass], default: true
 property :owner, kind_of: [String, Integer]
 property :group, kind_of: [String, Integer]
