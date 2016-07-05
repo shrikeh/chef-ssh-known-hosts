@@ -24,7 +24,7 @@ suites:
         file: /tmp/foo
         entries:
           -
-           host: '[sheffield.inviqa.com]:2222'
+           host: 'host.with.port.com:2222'
            type: ecdsa-sha2-nistp256
            key:  AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBAzq2hUFXsjbCGidpFmvCmeDU+eUPc9wPmRnAzUsIc6CLDxRJWUh4LSGApQ94ZZA3FwoSIqzV0pQqwOsQDTtWx4=
           -
