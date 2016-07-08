@@ -37,66 +37,112 @@ def load_current_resource
   @current_resource.group(@new_resource.group)
   @current_resource.mode(@new_resource.mode)
 end
+module KnownHostFile
+  module Parse
+    module_function
+    include SshUserKnownHosts
 
-# Helper module for Chef
-module CreateUserKnownHostEntries
-  include SshUserKnownHosts
+    @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]*)')
 
-  module_function
-
-  @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]*)')
-
-  def create_user_known_host_entries(entries)
-    fail_msg = 'Argument error not of type Array, instead got %s'
-    fail(
-      ArgumentError,
-      printf(fail_msg, entries.class),
-      caller
-    ) unless entries.is_a?(Array)
-    host_entries = []
-    entries.each do |entry|
-      host_entry = from_entry(entry)
-      fail(
-        ArgumentError,
-        "#{host_entry.inspect}",
-        caller
-      ) unless host_entry.is_a?(HostEntry)
-      host_entries.push(host_entry)
+    def parse_known_host_string(str)
+      str.scan(@regex_entry).map { | part |
+        {
+          'host' => part[0],
+          'type' => part[1],
+          'key'  => part[2]
+        }
+      }
     end
-    HostEntriesCollection.new(host_entries)
-  end
 
-  def from_entry(entry)
-    create_known_hosts_entry(
-      entry['host'],
-      entry['type'],
-      entry['key']
-    )
-  end
-
-  def create_known_hosts_entry(host, type, key)
-    fail(
-      ArgumentError,
-      'Type was empty',
-      caller
-    ) unless type
-    HostEntry.new(Host.from_string(host), HostKey.from_parts(key, type))
-  end
-
-  def parse_known_host_string(str)
-    str.scan(@regex_entry)
-  end
-
-  def from_string(str)
-    host_entries = []
-    # iterate through the file line by line
-    str.lines.each do |line|
-      parse_known_host_string(line).each do |host, type, key|
-        entry = create_known_hosts_entry(host, type, key)
-        host_entries.push(entry)
+    def check_existing_entry(entry, path)
+      entry.hosts.each do | host |
+        check_existing_host(host, path)
       end
     end
-    HostEntriesCollection.new(host_entries)
+
+    def check_existing_entries(entries, path)
+      entries.each do |entry|
+        check_existing_entry(entry, path)
+      end
+      entries
+    end
+
+    def keygen_check_host(host, path)
+      output = `ssh-keygen -F #{host} -f #{path}`.split("\n")
+      output[1] unless output.empty?
+    end
+
+    def check_existing_host(host, path)
+      exists = keygen_check_host(host, path)
+      parse_known_host_string(exists).each do |match|
+        fail match.inspect
+      end if exists.nil?
+    end
+
+    def filter_existing_entries(entries, path)
+      filtered_entries = check_existing_entries(entries, path)
+      entries_from_string(IO.read(path)).merge(filtered_entries)
+    end
+
+    def entries_from_string(str)
+      host_entries = []
+      # iterate through the file line by line
+      str.lines.each do |line|
+        parse_known_host_string(line).each do |parts|
+          host_entries.push(
+            Create.from_parts(parts)
+          )
+        end
+      end
+      HostEntriesCollection.new(host_entries)
+    end
+  end
+
+  module Create
+    module_function
+    include SshUserKnownHosts
+
+    def create_user_known_host_entries(entries)
+      fail_msg = 'Argument error not of type Array, instead got %s'
+      fail(
+        ArgumentError,
+        printf(fail_msg, entries.class),
+        caller
+      ) unless entries.is_a?(Array)
+      host_entries = []
+      entries.each do |entry|
+        host_entry = from_parts(entry)
+        fail(
+          ArgumentError,
+          "#{host_entry.inspect}",
+          caller
+        ) unless host_entry.is_a?(HostEntry)
+        host_entries.push(host_entry)
+      end
+      HostEntriesCollection.new(host_entries)
+    end
+
+    def from_parts(parts)
+      fail(
+        ArgumentError,
+        parts.inspect,
+        caller
+      ) unless parts.is_a?(Hash)
+      create_known_hosts_entry(
+        parts['host'],
+        parts['type'],
+        parts['key']
+      )
+    end
+
+    def create_known_hosts_entry(host, type, key)
+      fail(
+        ArgumentError,
+        type.inspect,
+        caller
+      ) unless type
+      HostEntry.new(Host.from_string(host), HostKey.from_parts(key, type))
+    end
   end
 end
 
@@ -107,38 +153,54 @@ def whyrun_supported?
 end
 
 action :create do
-  if new_resource.entries
-    fail_msg = 'Argument error not of type Array, instead got %s'
-    fail ArgumentError, printf(fail_msg, new_resource.entries.inspect) unless
-      new_resource
-      .entries
-      .is_a?(Array)
-    entries =
-      CreateUserKnownHostEntries
-      .create_user_known_host_entries(new_resource.entries)
-  end
 
-  if new_resource.append
-    if ::File.exist?(new_resource.path)
-      existing_keys =
-        CreateUserKnownHostEntries
-        .from_string(IO.read(new_resource.path))
-      entries = existing_keys.merge(entries)
-    end
-  end
-
-  f = file "ssh_known_hosts-#{new_resource.name}" do
+  Chef::Log.debug "Create file #{new_resource.path} if missing"
+  f = file "#{new_resource.name}-create" do
     path new_resource.path
-    action :create
+    action :nothing
     backup false
     owner new_resource.owner if new_resource.owner
     group new_resource.group if new_resource.group
     mode new_resource.mode
-    content "#{entries}"
+  end
+
+  fail_msg = 'entries not of type Array, instead got %s'
+  fail(
+    ArgumentError,
+    printf(fail_msg, new_resource.entries.inspect),
+    caller
+  ) unless new_resource.entries.is_a?(Array)
+
+  Chef::Log.debug "Read existing entries from #{new_resource.path}"
+  ruby_block "#{new_resource.name}-entries" do
+    block do
+      entries = KnownHostFile::Create
+        .create_user_known_host_entries(new_resource.entries)
+      if new_resource.append
+        entries = KnownHostFile::Parse
+          .filter_existing_entries(entries, new_resource.path)
+      end
+
+      f = file "#{new_resource.name}-update" do
+        path new_resource.path
+        action :create
+        content "#{entries}"
+        backup false
+        owner new_resource.owner if new_resource.owner
+        group new_resource.group if new_resource.group
+        mode new_resource.mode
+      end
+    end
+    action :run
+    notifies(
+      :create_if_missing,
+      "file[#{new_resource.name}-create]",
+      :before
+    )
   end
 
   msg = 'Updated %s'
+  Chef::Log.info f.inspect if f.updated_by_last_action?
   Chef::Log.info printf(msg, new_resource.path) if f.updated_by_last_action?
-
   f.updated_by_last_action?
 end
