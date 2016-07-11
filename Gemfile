@@ -5,6 +5,7 @@ group :chef do
   gem 'berkshelf', '~> 3.3.0'
   gem 'knife-solo'
   gem 'knife-solo_data_bag'
+  gem 'ipaddress'
 
   # Lock nokogiri to the version shipped with chefdk,
   # to avoid installing it again

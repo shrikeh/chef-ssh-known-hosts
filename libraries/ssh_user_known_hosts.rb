@@ -4,25 +4,32 @@ module SshUserKnownHosts
   require 'forwardable'
   # Describes a host (IP, domain) for a host entry
   class Host
+    require "ipaddress"
+
     include Enumerable
     extend Forwardable
     def_delegators :hosts, :each, :<<
-    @regex_ipv4_address = Regexp.new('\d+\.\d+\.\d+\.\d+')
 
     def self.from_string(str)
-      ips = []
-      domains = []
-      str.split(',').each do |part|
-        if @regex_ipv4_address.match(part)
-          ips.push(part)
-        else
-          domains.push(part)
-        end
-      end
-      new(domains, ips)
+      new(str.split(','))
     end
 
-    def initialize(domains, ips)
+    def filtered(remove)
+      remove.each do |host|
+
+      end
+    end
+
+    def initialize(hosts)
+      ips = []
+      domains = []
+      hosts.each do |host|
+        if IPAddress.valid? host.to_s
+          ips.push(IPAddr.new(host.to_s))
+        else
+          domains.push(host)
+        end
+      end
       @domains = domains.uniq.sort
       @ips = ips.uniq.sort
     end
@@ -32,10 +39,8 @@ module SshUserKnownHosts
     attr_reader :ips
 
     def to_s
-      hosts.join(',')
+      hosts.map { |host| host.to_s }.join(',')
     end
-
-    private
 
     def hosts
       domains + ips
@@ -110,9 +115,9 @@ module SshUserKnownHosts
     private
 
     def create_host(host_entry)
-      domains = hosts.domains + host_entry.hosts.domains
-      ips = hosts.ips + host_entry.hosts.ips
-      Host.new(domains, ips)
+      existing_hosts = hosts.hosts
+      new_hosts = host_entry.hosts.hosts
+      Host.new(existing_hosts + new_hosts)
     end
   end
 

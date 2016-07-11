@@ -55,16 +55,24 @@ module KnownHostFile
     end
 
     def check_existing_entry(entry, path)
+      existing_hosts = []
       entry.hosts.each do | host |
-        check_existing_host(host, path)
+        if !keygen_check_host(host, path)
+          existing_hosts.push(host)
+        end
       end
+      existing_hosts
     end
 
     def check_existing_entries(entries, path)
+      filtered_entries = []
       entries.each do |entry|
-        check_existing_entry(entry, path)
+        check_existing_entry(entry, path).each do |host|
+
+        end
+        filtered_entries.push(entry)
       end
-      entries
+      HostEntriesCollection.new(filtered_entries)
     end
 
     def keygen_check_host(host, path)
@@ -72,12 +80,14 @@ module KnownHostFile
       output[1] unless output.empty?
     end
 
-    def check_existing_host(host, path)
-      exists = keygen_check_host(host, path)
-      parse_known_host_string(exists).each do |match|
-        fail match.inspect
-      end if exists.nil?
-    end
+    # def compare_host(host, path)
+    #   exists = keygen_check_host(host, path)
+    #   parse_known_host_string(exists).each do |match|
+    #     if match['host'] == host
+    #
+    #     end
+    #   end unless exists.nil?
+    # end
 
     def filter_existing_entries(entries, path)
       filtered_entries = check_existing_entries(entries, path)
@@ -109,6 +119,7 @@ module KnownHostFile
         printf(fail_msg, entries.class),
         caller
       ) unless entries.is_a?(Array)
+
       host_entries = []
       entries.each do |entry|
         host_entry = from_parts(entry)
