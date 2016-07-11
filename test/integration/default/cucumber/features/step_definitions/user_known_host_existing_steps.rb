@@ -30,11 +30,11 @@ When(/^Chef runs and the node has new known host entries$/) do
 end
 
 Then(/^new entries are appended and the existing entries are preserved$/) do
-  host_entries = `cat #{@host_file}`
-  ::STDOUT.puts host_entries.class
-  key = 'github.com,192.30.252.128,192.30.252.129 ssh-rsa'
-  github_key_host_type = Regexp.escape(key)
-  regexp = Regexp.new("#{github_key_host_type} .*")
+  hosts = ['github.com', '192.30.252.128', '192.30.252.129']
 
-  expect("#{host_entries}").to match(regexp)
+  hosts.each do | host |
+    @exists = `ssh-keygen -F #{host} -f #{@host_file}`
+    regexp = Regexp.new(Regexp.escape(host))
+    expect("#{@exists}").to match(regexp)
+  end
 end

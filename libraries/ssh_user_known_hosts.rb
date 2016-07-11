@@ -31,6 +31,10 @@ module SshUserKnownHosts
 
     attr_reader :ips
 
+    def to_a
+      hosts
+    end
+
     def to_s
       hosts.map(&:to_s).join(',')
     end
@@ -138,17 +142,21 @@ module SshUserKnownHosts
     def_delegators :sort_entries, :each, :<<
 
     def initialize(entries)
-      @host_entries = HostEntriesCollection.resolve(entries)
+      @entries = HostEntriesCollection.resolve(entries)
     end
 
     def merge(collection)
-      validate_collection(collection)
+      HostEntriesCollection.validate_collection(collection)
 
       host_entries = HostEntriesCollection.resolve(
         collection.entries.values,
-        @host_entries
+        @entries
       )
       HostEntriesCollection.new(host_entries.values)
+    end
+
+    def to_a
+      @entries
     end
 
     def to_s
@@ -159,14 +167,14 @@ module SshUserKnownHosts
       "#{entries.sort.join("\n")}\n"
     end
 
-    def entries
-      @host_entries
-    end
+    attr_reader :entries
 
     def self.resolve(entries, existing = {})
       entries.each do |entry|
-        validate_entry(entry)
-        existing[entry.key.key] = merge_host_entry(existing, entry)
+        unless entry.nil?
+          HostEntriesCollection.validate_entry(entry)
+          existing[entry.key.key] = merge_host_entry(existing, entry)
+        end
       end
       existing.rehash
       existing
@@ -179,9 +187,7 @@ module SshUserKnownHosts
       host_entry
     end
 
-    private
-
-    def validate_entry(entry)
+    def self.validate_entry(entry)
       fail(
         ArgumentError,
         printf('Host entry: %s', entry.inspect),
@@ -189,7 +195,7 @@ module SshUserKnownHosts
       ) unless entry.is_a?(HostEntry)
     end
 
-    def validate_collection(collection)
+    def self.validate_collection(collection)
       fail(
         ArgumentError,
         'Argument error not of type HostEntriesCollection',
@@ -197,8 +203,10 @@ module SshUserKnownHosts
       ) unless collection.is_a?(HostEntriesCollection)
     end
 
+    private
+
     def sort_entries
-      @host_entries.values
+      @entries.values
     end
   end
 end

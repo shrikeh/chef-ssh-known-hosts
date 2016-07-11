@@ -20,7 +20,7 @@ require_relative '../libraries/ssh_user_known_hosts'
 
 # Override Load Current Resource
 def load_current_resource
-  @current_resource = Chef::Resource::SshUserKnownHostsEntries.new(
+  @current_resource = Chef::Resource::SshUserKnownHosts.new(
     @new_resource.name
   )
 
@@ -33,6 +33,7 @@ def load_current_resource
   @current_resource.entries(@new_resource.entries)
   @current_resource.path(@new_resource.path)
   @current_resource.append(@new_resource.append)
+  @current_resource.hash(@new_resource.hash)
   @current_resource.owner(@new_resource.owner)
   @current_resource.group(@new_resource.group)
   @current_resource.mode(@new_resource.mode)
@@ -56,21 +57,29 @@ module KnownHostFile
       end
     end
 
-    def check_existing_entry(entry, path)
+    def check_existing_hosts(hosts, path)
       existing_hosts = []
-      entry.hosts.each do |host|
-        existing_hosts.push(host) unless keygen_check_host(host, path)
+      hosts.each do |host|
+        existing_hosts.push(host) unless keygen_check_host(host, path).nil?
       end
       existing_hosts
+    end
+
+    def create_filtered_hosts(hosts, path)
+      existing = check_existing_hosts(hosts, path)
+      filtered = hosts.to_a - existing
+      Host.new(filtered) unless filtered.empty?
+    end
+
+    def create_filtered_entry(entry, path)
+      filtered_hosts = create_filtered_hosts(entry.hosts, path)
+      HostEntry.new(filtered_hosts, entry.key) unless filtered_hosts.nil?
     end
 
     def check_existing_entries(entries, path)
       filtered_entries = []
       entries.each do |entry|
-        check_existing_entry(entry, path).each do |host|
-          puts host
-        end
-        filtered_entries.push(entry)
+        filtered_entries.push(create_filtered_entry(entry, path))
       end
       HostEntriesCollection.new(filtered_entries)
     end
@@ -79,15 +88,6 @@ module KnownHostFile
       output = `ssh-keygen -F #{host} -f #{path}`.split("\n")
       output[1] unless output.empty?
     end
-
-    # def compare_host(host, path)
-    #   exists = keygen_check_host(host, path)
-    #   parse_known_host_string(exists).each do |match|
-    #     if match['host'] == host
-    #
-    #     end
-    #   end unless exists.nil?
-    # end
 
     def filter_existing_entries(entries, path)
       filtered_entries = check_existing_entries(entries, path)
@@ -209,6 +209,11 @@ action :create do
         owner new_resource.owner if new_resource.owner
         group new_resource.group if new_resource.group
         mode new_resource.mode
+        notifies(
+          :hash,
+          "ssh_user_known_hosts[#{new_resource.name}]",
+          :delayed
+        )
       end
     end
     action :run
@@ -223,4 +228,24 @@ action :create do
   Chef::Log.info f.inspect if f.updated_by_last_action?
   Chef::Log.info printf(msg, new_resource.path) if f.updated_by_last_action?
   f.updated_by_last_action?
+end
+
+action :hash do
+  ruby_block "#{new_resource.name}-hash-keys" do
+    action :nothing
+    block do
+      if new_resource.hash
+        `ssh-keygen -f #{new_resource.path} -H`
+      end
+    end
+    notifies(
+      :delete,
+      "file[#{new_resource.name}-old-cleanup]",
+      :delayed
+    )
+  end
+
+  file "#{new_resource.name}-old-cleanup" do
+    path "#{new_resource.path}.old"
+  end
 end

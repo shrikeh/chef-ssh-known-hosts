@@ -17,9 +17,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource_name 'ssh_user_known_hosts_entries'
+resource_name 'ssh_user_known_hosts'
 
-actions :create
+actions :create, :hash
 # Our default action, can be anything.
 default_action :create if defined?(default_action)
 
@@ -29,6 +29,7 @@ property :append, kind_of: [TrueClass, FalseClass], default: true
 property :owner, kind_of: [String, Integer]
 property :group, kind_of: [String, Integer]
 property :mode, kind_of: [String, Integer], default: '0644'
+property :hash, kind_of: [TrueClass, FalseClass], default: true
 
 def initialize(*args)
   super
