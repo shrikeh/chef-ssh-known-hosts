@@ -38,28 +38,28 @@ def load_current_resource
   @current_resource.mode(@new_resource.mode)
 end
 module KnownHostFile
+  # Parse existing known_hosts for appending
   module Parse
     module_function
+
     include SshUserKnownHosts
 
     @regex_entry = Regexp.new('([^\s]+) ([a-z0-9-]+) ([0-9A-Za-z/+]+[=]*)')
 
     def parse_known_host_string(str)
-      str.scan(@regex_entry).map { | part |
+      str.scan(@regex_entry).map do |part|
         {
           'host' => part[0],
           'type' => part[1],
           'key'  => part[2]
         }
-      }
+      end
     end
 
     def check_existing_entry(entry, path)
       existing_hosts = []
-      entry.hosts.each do | host |
-        if !keygen_check_host(host, path)
-          existing_hosts.push(host)
-        end
+      entry.hosts.each do |host|
+        existing_hosts.push(host) unless keygen_check_host(host, path)
       end
       existing_hosts
     end
@@ -68,7 +68,7 @@ module KnownHostFile
       filtered_entries = []
       entries.each do |entry|
         check_existing_entry(entry, path).each do |host|
-
+          puts host
         end
         filtered_entries.push(entry)
       end
@@ -109,27 +109,36 @@ module KnownHostFile
     end
   end
 
+  # Create new host entries from node attributes
   module Create
     module_function
+
     include SshUserKnownHosts
 
-    def create_user_known_host_entries(entries)
+    def validate_entries(entries)
       fail_msg = 'Argument error not of type Array, instead got %s'
       fail(
         ArgumentError,
         printf(fail_msg, entries.class),
         caller
       ) unless entries.is_a?(Array)
+    end
 
+    def validate_host_entry(host_entry)
+      fail(
+        ArgumentError,
+        "#{host_entry.inspect}",
+        caller
+      ) unless host_entry.is_a?(HostEntry)
+      host_entry
+    end
+
+    def create_user_known_host_entries(entries)
+      validate_entries(entries)
       host_entries = []
       entries.each do |entry|
         host_entry = from_parts(entry)
-        fail(
-          ArgumentError,
-          "#{host_entry.inspect}",
-          caller
-        ) unless host_entry.is_a?(HostEntry)
-        host_entries.push(host_entry)
+        host_entries.push(validate_host_entry(host_entry))
       end
       HostEntriesCollection.new(host_entries)
     end
@@ -165,7 +174,6 @@ def whyrun_supported?
 end
 
 action :create do
-
   Chef::Log.debug "Create file #{new_resource.path} if missing"
   f = file "#{new_resource.name}-create" do
     path new_resource.path
@@ -187,10 +195,10 @@ action :create do
   ruby_block "#{new_resource.name}-entries" do
     block do
       entries = KnownHostFile::Create
-        .create_user_known_host_entries(new_resource.entries)
+                .create_user_known_host_entries(new_resource.entries)
       if new_resource.append
         entries = KnownHostFile::Parse
-          .filter_existing_entries(entries, new_resource.path)
+                  .filter_existing_entries(entries, new_resource.path)
       end
 
       f = file "#{new_resource.name}-update" do

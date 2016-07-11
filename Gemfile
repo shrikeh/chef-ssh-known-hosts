@@ -19,7 +19,4 @@ group :chef_development do
   gem 'kitchen-docker', '~> 2.3.0'
   gem 'foodcritic', '~> 4.0.0'
   gem 'rubocop', '~> 0.34.0'
-  gem 'berkshelf'
-  gem 'knife-solo'
-  gem 'knife-solo_data_bag'
 end
