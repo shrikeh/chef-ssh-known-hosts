@@ -104,6 +104,7 @@ module KnownHostFile
           )
         end
       end
+
       HostEntriesCollection.new(host_entries)
     end
   end
