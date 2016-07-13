@@ -19,11 +19,11 @@ platforms:
   - name: ubuntu-14.04
     driver_config:
       provision_command:
-        - curl -L https://www.opscode.com/chef/install.sh | bash -s -- -v 11.18.12 -d /tmp/vagrant-cache/vagrant_omnibus/
+        - curl -L https://www.opscode.com/chef/install.sh | bash -s -- -d /tmp/vagrant-cache/vagrant_omnibus/
   - name: centos-7.1
     driver_config:
       provision_command:
-        - curl -L https://www.opscode.com/chef/install.sh | bash -s -- -v 11.18.12 -d /tmp/vagrant-cache/vagrant_omnibus/
+        - curl -L https://www.opscode.com/chef/install.sh | bash -s -- -d /tmp/vagrant-cache/vagrant_omnibus/
 suites:
   - name: create
     data_bags_path: "test/integration/data_bags"
