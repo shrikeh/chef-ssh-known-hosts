@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # Module for various value objects describing parts of a known_host file
-module SshUserKnownHosts
+module KnownHosts
   require 'forwardable'
   # Describes a host (IP, domain) for a host entry
   class Host

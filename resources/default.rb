@@ -19,19 +19,13 @@
 
 resource_name 'ssh_user_known_hosts'
 
-actions :create, :hash
+actions :create, :hash, :append
 # Our default action, can be anything.
 default_action :create if defined?(default_action)
 
-property :entries, kind_of: Array
-property :path, kind_of: String, name_property: true
-property :append, kind_of: [TrueClass, FalseClass], default: true
-property :owner, kind_of: [String, Integer]
-property :group, kind_of: [String, Integer]
-property :mode, kind_of: [String, Integer], default: '0644'
-property :hash, kind_of: [TrueClass, FalseClass], default: true
-
-def initialize(*args)
-  super
-  @action = :create
-end
+attribute :entries, kind_of: Array
+attribute :path, kind_of: String, name_attribute: true
+attribute :owner, kind_of: [String, Integer]
+attribute :group, kind_of: [String, Integer]
+attribute :mode, kind_of: [String, Integer], default: '0644'
+attribute :hash, kind_of: [TrueClass, FalseClass], default: true
