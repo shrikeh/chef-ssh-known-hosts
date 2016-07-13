@@ -30,7 +30,7 @@ suites:
       ssh_known_hosts:
         files:
           -
-            file: /tmp/foo
+            file: /tmp/known_hosts
             entries:
               -
                host: '[host.with.port.com:2222]'
@@ -50,7 +50,7 @@ suites:
       ssh_known_hosts:
         files:
           -
-            file: /tmp/foo
+            file: /tmp/known_hosts
             append: true
             entries:
               -
