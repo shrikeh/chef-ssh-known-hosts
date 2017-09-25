@@ -17,18 +17,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource_name 'ssh_user_known_hosts_entry'
+resource_name 'ssh_user_known_hosts'
 
-actions :create
-default_action :create
+actions :create, :hash, :append
+# Our default action, can be anything.
+default_action :create if defined?(default_action)
 
-attribute :host, kind_of: String, name_attribute: true
-attribute :key, kind_of: String
-attribute :type, kind_of: String, default: 'rsa'
-attribute :port, kind_of: Fixnum, default: 22
-attribute :path, kind_of: String, default: '/etc/ssh/known_hosts'
-
-def initialize(*args)
-  super
-  @action = :create
-end
+attribute :entries, kind_of: Array
+attribute :path, kind_of: String, name_attribute: true
+attribute :owner, kind_of: [String, Integer]
+attribute :group, kind_of: [String, Integer]
+attribute :mode, kind_of: [String, Integer], default: '0644'
+attribute :hash, kind_of: [TrueClass, FalseClass], default: true

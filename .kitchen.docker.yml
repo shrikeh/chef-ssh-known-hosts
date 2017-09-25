@@ -1,6 +1,16 @@
 ---
 driver:
-  name: vagrant
+  name: docker
+
+driver_config:
+  require_chef_omnibus: false
+  use_sudo: false
+  privileged: true
+  provision_command:
+    - curl -L https://www.opscode.com/chef/install.sh | bash -s -- -d /tmp/vagrant-cache/vagrant_omnibus/
+    - env GEM_HOME=/tmp/verifier/gems GEM_PATH=/tmp/verifier/gems GEM_CACHE=/tmp/verifier/gems/cache /opt/chef/embedded/bin/gem install --no-ri --no-rdoc net-ssh -v '2.9.2'
+    - env GEM_HOME=/tmp/verifier/gems GEM_PATH=/tmp/verifier/gems GEM_CACHE=/tmp/verifier/gems/cache /opt/chef/embedded/bin/gem install --no-ri --no-rdoc thor busser busser-serverspec serverspec bundler cucumber rspec-expectations
+    - chown -R kitchen:kitchen /tmp/verifier
 
 provisioner:
   name: chef_zero
@@ -11,16 +21,8 @@ provisioner:
 #   name: inspec
 
 platforms:
-  <% %w(11.18 12.6).each do |chef_version| %>
-  - name: ubuntu-14.04-<%= chef_version %>
-    driver:
-      box: bento/ubuntu-14.04
-    require_chef_omnibus: "<%= chef_version %>"
-  - name: centos-7.1-<%= chef_version %>
-    driver:
-      box: bento/centos-7.1
-    require_chef_omnibus: "<%= chef_version %>"
-  <% end %>
+  - name: ubuntu-14.04
+  - name: centos-7.1
 suites:
   - name: create
     data_bags_path: "test/integration/data_bags"

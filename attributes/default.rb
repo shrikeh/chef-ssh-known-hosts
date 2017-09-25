@@ -17,5 +17,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-default['ssh_known_hosts']['path'] = '/etc/ssh/ssh_known_hosts'
-default['ssh_known_hosts']['key_type'] = 'rsa,dsa'
+default['ssh_known_hosts']['default_path'] = '/etc/ssh/ssh_known_hosts'
+default['ssh_known_hosts']['key_type'] = 'rsa'
